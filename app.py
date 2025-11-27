@@ -22,25 +22,24 @@ def load_data():
     df_hosp["fY"] = pd.to_numeric(df_hosp["fY"], errors="coerce")
     df_hosp = df_hosp.dropna(subset=["fX", "fY"])
 
-    # 総問い合わせ列（なければ各症状の問い合わせ合計で作る）
     def has_col(df, col):
         return col in df.columns
 
-    if "inquiry_total" in df_hosp.columns:
-        df_hosp["total_inquiry"] = df_hosp["inquiry_total"]
-    else:
-        cols_exist = [
-            c for c in
-            ["heatstroke_inquiry", "flu_inquiry", "snow_inquiry", "covid_inquiry"]
-            if c in df_hosp.columns
-        ]
-        df_hosp["total_inquiry"] = df_hosp[cols_exist].sum(axis=1)
-
-    # 症状別サブセット
+    # 問い合わせあり病院
     df_hosp_heat  = df_hosp[df_hosp["heatstroke_inquiry"] > 0] if has_col(df_hosp, "heatstroke_inquiry") else df_hosp.iloc[0:0]
     df_hosp_flu   = df_hosp[df_hosp["flu_inquiry"]        > 0] if has_col(df_hosp, "flu_inquiry")        else df_hosp.iloc[0:0]
     df_hosp_snow  = df_hosp[df_hosp["snow_inquiry"]       > 0] if has_col(df_hosp, "snow_inquiry")       else df_hosp.iloc[0:0]
     df_hosp_covid = df_hosp[df_hosp["covid_inquiry"]      > 0] if has_col(df_hosp, "covid_inquiry")      else df_hosp.iloc[0:0]
+
+    # 総問い合わせ列（なければ各症状の問い合わせ合計で作る）
+    if "inquiry_total" in df_hosp.columns:
+        df_hosp["total_inquiry"] = df_hosp["inquiry_total"]
+    else:
+        cols_exist = [
+            c for c in ["heatstroke_inquiry", "flu_inquiry", "snow_inquiry", "covid_inquiry"]
+            if c in df_hosp.columns
+        ]
+        df_hosp["total_inquiry"] = df_hosp[cols_exist].sum(axis=1) if cols_exist else 0
 
     # --- 現場（month 列はすでに入っている想定）---
     df_scene = pd.read_csv(SCENE_PATH, encoding="utf-8-sig")
@@ -178,6 +177,7 @@ def add_hosp_markers(df, fg, mode=None):
         if pd.isna(lat) or pd.isna(lng):
             continue
 
+        # 基本色
         color = "blue"
 
         if mode is None:
@@ -201,11 +201,10 @@ def add_hosp_markers(df, fg, mode=None):
             [lat, lng],
             popup=popup_html,
             icon=folium.Icon(color=color, icon="hospital-o", prefix="fa"),
-            # 病院ピンは現場クラスタより下に表示
-            z_index_offset=-1000,
+            z_index_offset=-1000,  # 現場クラスタより下
         ).add_to(fg)
 
-# 全ての病院（総問い合わせ条件）
+# 全ての病院（総問い合わせ）
 add_hosp_markers(df_hosp,       fg_all_hosp,   mode=None)
 # 症状別問い合わせあり病院
 add_hosp_markers(df_hosp_heat,  fg_heat_hosp,  mode="heat")
@@ -290,7 +289,7 @@ for _, row in df_scene_agg.iterrows():
         fill=True,
         fill_opacity=0.5,
         popup=popup_html,
-        cases=int(row["total_cases"]),
+        cases=int(row["total_cases"]),  # クラスタの合計用
     ).add_to(cluster_scene_all)
 
 # 症状別
@@ -309,7 +308,7 @@ def add_scene_condition_markers(df_sub, cluster, color, cond_col, label):
             fill=True,
             fill_opacity=0.6,
             popup=popup_html,
-            cases=count,
+            cases=count,  # クラスタ数字 = この症状の件数
         ).add_to(cluster)
 
 add_scene_condition_markers(
