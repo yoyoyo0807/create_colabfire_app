@@ -2,4 +2,3 @@ streamlit
 streamlit-folium
 folium
 pandas
-openpyxl
