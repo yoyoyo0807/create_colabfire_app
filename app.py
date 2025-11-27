@@ -9,8 +9,9 @@ from streamlit_folium import st_folium
 
 @st.cache_data
 def load_data():
-    df_hosp = pd.read_csv("data/flu_with_address.csv", encoding="utf-8-sig")
-    df_scene = pd.read_csv("data/scene_with_month.csv", encoding="utf-8-sig")
+    # ★ ここだけ修正： data/ を外す
+    df_hosp = pd.read_csv("flu_with_address.csv", encoding="utf-8-sig")
+    df_scene = pd.read_csv("scene_with_month.csv", encoding="utf-8-sig")
 
     # 座標を数値化
     for df in [df_hosp, df_scene]:
